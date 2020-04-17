@@ -1,0 +1,8 @@
+[package]
+name = "window_titles"
+version = "0.1.0"
+authors = ["Hiruna Jayamanne <hiru@hiru.dev>"]
+edition = "2018"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+xcb = "0.9"
