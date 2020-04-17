@@ -3,15 +3,15 @@ use winapi::{
         winuser::{EnumWindows, GetWindowTextW, GetWindowTextLengthW, IsWindowVisible},
         winnt::LPWSTR
     },
-    shared::{minwindef::{BOOL, LPARAM}, windef::HWND, },
+    shared::{minwindef::{BOOL, LPARAM}, windef::HWND},
 };
 
-use std::error::Error;
+use crate::{ConnectionTrait, Result};
 
 pub struct Connection;
-impl Connection {
-    pub fn new() -> Result<Self, Box<dyn Error>> { Ok(Self) }
-    pub fn window_titles(&self) -> Vec<String> {
+impl ConnectionTrait for Connection {
+    fn new() -> Result<Self> { Ok(Self) }
+    fn window_titles(&self) -> Result<Vec<String>> {
         let state: Box<Vec<String>> = Box::new(Vec::new());
         let ptr = Box::into_raw(state);
         let state;
@@ -19,7 +19,7 @@ impl Connection {
             EnumWindows(Some(enumerate_windows), ptr as LPARAM);
             state = Box::from_raw(ptr);
         }
-        *state
+        Ok(*state)
     }
 }
 
