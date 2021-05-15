@@ -50,6 +50,7 @@ impl Connection {
     }
 }
 
+#[derive(Debug, Eq, PartialEq)]
 pub struct Window(pub HWND);
 impl Window {
     pub fn name(&self) -> Result<String> {
@@ -72,6 +73,7 @@ impl Window {
     }
 }
 
+#[derive(Debug, Eq, PartialEq)]
 pub struct Process(pub u32);
 impl Process {
     pub fn name(&self) -> String {
