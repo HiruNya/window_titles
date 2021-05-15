@@ -8,4 +8,4 @@ edition = "2018"
 xcb = "0.9"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-winapi = { version = "0.3", features = ["winnt", "winuser", "minwindef"] }
+winapi = { version = "0.3", features = ["handleapi", "minwindef", "processthreadsapi", "psapi", "winnt", "winuser"] }
