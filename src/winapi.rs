@@ -26,10 +26,13 @@ impl ConnectionTrait for Connection {
 unsafe extern "system" fn enumerate_windows(window: HWND, state: LPARAM) -> BOOL {
     if IsWindowVisible(window) == 0 { return true.into() }
     let state = state as *mut Vec<String>;
-    let length = GetWindowTextLengthW(window);
+    let mut length = GetWindowTextLengthW(window);
+    if length == 0 { return true.into() }
+    length = length + 1;
     let mut title: Vec<u16> = vec![0; length as usize];
-    if GetWindowTextW(window, title.as_mut_ptr() as LPWSTR, length+1) != 0 {
-        if let Ok(title) = String::from_utf16(title[0..(length as usize)].as_ref()) {
+    let textw = GetWindowTextW(window, title.as_mut_ptr() as LPWSTR, length);
+    if textw != 0 {
+        if let Ok(title) = String::from_utf16(title[0..(textw as usize)].as_ref()) {
             (*state).push(title);
         }
     }
