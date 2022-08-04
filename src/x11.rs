@@ -1,5 +1,4 @@
-use xcb::{Connection as XConnection, xproto::{Atom, ATOM_WINDOW, get_property, intern_atom, Window}};
-
+use xcb::{Connection as XConnection, x::{self, Atom}};
 use crate::{ConnectionTrait, Result};
 
 pub struct Connection {
@@ -12,20 +11,52 @@ pub struct Connection {
 impl ConnectionTrait for Connection {
 	fn new() -> Result<Self> {
 		let connection = XConnection::connect(None)?.0;
-		let client_list = intern_atom(&connection, false, "_NET_CLIENT_LIST").get_reply()?.atom();
-		let string = intern_atom(&connection, false, "UTF8_STRING").get_reply()?.atom();
-		let window_name = intern_atom(&connection, false, "_NET_WM_NAME").get_reply()?.atom();
+		
+		let client_list = connection.send_request(&x::InternAtom {
+			only_if_exists: false,
+			name: "_NET_CLIENT_LIST".as_bytes(),
+		});
+		let client_list = connection.wait_for_reply(client_list)?.atom();
+		
+		let string = connection.send_request(&x::InternAtom {
+			only_if_exists: false,
+			name: "UTF8_STRING".as_bytes(),
+		});
+		let string = connection.wait_for_reply(string)?.atom();
+		
+		let window_name = connection.send_request(&x::InternAtom {
+			only_if_exists: false,
+			name: "_NET_WM_NAME".as_bytes(),
+		});
+		let window_name = connection.wait_for_reply(window_name)?.atom();
+		
 		Ok(Self { connection, client_list, string, window_name })
 	}
 	fn window_titles(&self) -> Result<Vec<String>> {
 		let titles = self.connection.get_setup().roots()
 			.map(|screen| screen.root())
-			.map(|window| get_property(&self.connection, false, window, self.client_list, ATOM_WINDOW, 0, 1024))
-			.filter_map(|cookie| cookie.get_reply().ok())
-			.flat_map(|reply| reply.value().to_vec().into_iter())
-			.filter_map(|window: Window| get_property(&self.connection, false, window, self.window_name, self.string, 0, 1024).get_reply().ok())
-			.filter_map(|value| String::from_utf8(value.value().to_vec()).ok())
-			.collect();
+		    .map(|window| self.connection.send_request(&x::GetProperty {
+		        delete: false,
+		        window,
+		        property: self.client_list,
+		        r#type: x::ATOM_NONE,
+		        long_offset: 0,
+		        long_length: 1024})
+		     )
+		    .filter_map(|cookie| self.connection.wait_for_reply(cookie).ok())
+		    .flat_map(|reply| reply.value().to_vec().into_iter())
+		    .filter_map(|window| {
+		        let c = self.connection.send_request(&x::GetProperty {
+		            delete: false,
+		            window,
+		            property: self.window_name.to_owned(),
+		            r#type: self.string.to_owned(),
+		            long_offset: 0,
+		            long_length: 1024});
+		        self.connection.wait_for_reply(c).ok()
+		    })
+		    .filter_map(|value| String::from_utf8(value.value().to_vec()).ok())
+		    .collect();
 		Ok(titles)
 	}
 }
